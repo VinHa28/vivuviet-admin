@@ -1,0 +1,95 @@
+:root {
+  --rte-font-family:
+    "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --rte-font-size-base: 14px;
+  --rte-line-height-base: 1.6;
+  --rte-radius-xs: 4px;
+  --rte-radius-sm: 6px;
+  --rte-radius-md: 8px;
+  --rte-gap-xs: 4px;
+  --rte-gap-sm: 6px;
+  --rte-gap-md: 10px;
+  --rte-color-bg: #ffffff;
+  --rte-color-surface: #ffffff;
+  --rte-color-surface-alt: #fcf8f2; /* Tông ấm nhẹ để hợp với màu vàng */
+  --rte-color-editor-bg: #ffffff;
+  --rte-color-preview-bg: #fbfcff;
+  --rte-color-border: #dee2e6;
+  --rte-color-border-strong: #adb5bd;
+  --rte-color-text: #212529;
+  --rte-color-text-muted: #6c757d;
+  --rte-color-text-inverse: #ffffff;
+  --rte-color-control-bg: #ffffff;
+  --rte-color-control-hover: #fdf2f1; /* Hover tông đỏ cực nhạt */
+  --rte-color-control-active: #a5190e; /* Sử dụng màu đỏ chủ đạo */
+
+  /* Cập nhật mã màu theo yêu cầu */
+  --rte-color-accent: #a5190e;
+  --rte-color-accent-strong: #84140b;
+  --rte-color-danger: #a5190e;
+  --rte-color-danger-strong: #84140b;
+  --rte-color-highlight: #f7bd01;
+  --rte-color-highlight-current: #e5af00;
+
+  /* Đổ bóng ám đỏ nhẹ */
+  --rte-shadow-soft: 0 2px 8px rgba(165, 25, 14, 0.1);
+  --rte-shadow-pop: 0 4px 12px rgba(165, 25, 14, 0.15);
+  --rte-transition-fast: 0.2s ease;
+}
+
+body {
+  background-color: var(--rte-color-bg);
+  color: var(--rte-color-text);
+  font-family: var(--rte-font-family);
+}
+
+/* ... các phần container & layout giữ nguyên cấu trúc ... */
+
+.rte-focused {
+  /* Đổ bóng khi focus theo tông đỏ */
+  box-shadow: 0 0 0 3px rgba(165, 25, 14, 0.12);
+}
+
+/* Cập nhật màu sắc cho Button khi Active */
+.rte-btn.active {
+  background: var(--rte-color-accent);
+  color: var(--rte-color-text-inverse);
+  border-color: var(--rte-color-accent);
+}
+
+/* Link trong editor */
+.rte-editor a {
+  color: #a5190e !important;
+  text-decoration: underline !important;
+  transition: color 0.2s ease !important;
+}
+
+.rte-editor a:hover,
+.rte-editor a:focus {
+  color: #f7bd01 !important; /* Chuyển sang vàng khi hover */
+}
+
+/* Code block trong preview */
+.rte-preview code {
+  background: rgba(247, 189, 1, 0.1); /* Nền vàng nhạt */
+  color: #a5190e; /* Chữ đỏ */
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+/* Blockquote */
+.rte-editor blockquote,
+.rte-preview blockquote {
+  border-left: 4px solid #a5190e; /* Đường kẻ lề màu đỏ */
+  background: #fdf2f1;
+  padding: 10px 20px;
+  margin: 1.5em 0;
+  font-style: italic;
+}
+
+/* Theme Dark (nếu có sử dụng) */
+.rte-container.rte-theme-dark {
+  --rte-color-accent: #f7bd01; /* Đảo màu vàng làm accent cho nền tối để dễ nhìn hơn */
+  --rte-color-control-active: #f7bd01;
+}
