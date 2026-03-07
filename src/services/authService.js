@@ -3,7 +3,6 @@ import axios from "../lib/axios";
 export const login = async (email, password) => {
   try {
     const response = await axios.post("/auth/admin/login", { email, password });
-    console.log("AuthService: Login response received:", response.data);
 
     // Handle new standardized response format
     const responseData = response.data.data || response.data;
@@ -11,7 +10,6 @@ export const login = async (email, password) => {
     if (responseData.token) {
       localStorage.setItem("accessToken", responseData.token);
       localStorage.setItem("user", JSON.stringify(responseData.user));
-      console.log("AuthService: Token and user saved to localStorage");
     }
     return responseData;
   } catch (error) {

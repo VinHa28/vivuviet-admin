@@ -26,7 +26,7 @@ export default function Posts() {
       const data = await getAllPosts();
       setPosts(data);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       setLoading(false);
     }

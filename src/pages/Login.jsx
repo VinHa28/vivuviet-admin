@@ -14,11 +14,8 @@ const Login = () => {
     setError("");
     setLoading(true);
 
-    console.log("Attempting login with:", email);
-
     try {
       const data = await login(email, password);
-      console.log("Login response:", data);
 
       if (!data || !data.user) {
         console.error("Invalid response structure:", data);
@@ -27,12 +24,10 @@ const Login = () => {
       }
 
       if (data.user.role !== "admin") {
-        console.log("User role is not admin:", data.user.role);
         setError("Bạn không có quyền truy cập trang admin");
         return;
       }
 
-      console.log("Login successful, navigating to dashboard");
       navigate("/");
     } catch (err) {
       console.error("Login error:", err);

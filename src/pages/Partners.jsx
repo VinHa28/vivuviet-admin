@@ -26,7 +26,7 @@ const Partners = () => {
       const data = await getAllPartners();
       setPartners(data);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       message.error("Không thể tải danh sách đối tác");
     } finally {
       setLoading(false);
@@ -39,7 +39,7 @@ const Partners = () => {
       message.success("Đã duyệt đối tác thành công!");
       fetchPartners();
     } catch (error) {
-      console.log(error);
+      console.error(error);
       message.error("Có lỗi xảy ra khi duyệt");
     }
   };
@@ -52,7 +52,7 @@ const Partners = () => {
       setRejectionReason("");
       fetchPartners();
     } catch (error) {
-      console.log(error);
+      console.error(error);
       message.error("Lỗi khi từ chối");
     }
   };

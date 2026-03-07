@@ -19,7 +19,7 @@ export default function PartnerDetails() {
       setParner(data.partner);
       setStats(data.statistics);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -30,7 +30,7 @@ export default function PartnerDetails() {
       const data = await getPartnerService(id);
       console.log(data);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       setLoading(false);
     }

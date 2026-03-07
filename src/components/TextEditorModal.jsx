@@ -73,7 +73,7 @@ export default function TextEditorModal({
       const data = await getAactiveDestinations();
       setDestinations(data);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   };
 
@@ -94,7 +94,7 @@ export default function TextEditorModal({
       message.success("Lưu bài viết thành công!");
       onCloseModal();
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
