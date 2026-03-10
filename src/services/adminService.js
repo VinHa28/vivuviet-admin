@@ -73,3 +73,63 @@ export const createNewPost = async (postData) => {
     throw error.response?.data || { message: "Lỗi khi tạo bài viết" };
   }
 };
+
+export const getNotifications = async () => {
+  try {
+    const response = await axios.get("/notifications");
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Fetching notifications error",
+      error.response?.data || error.message,
+    );
+    throw (
+      error.response?.data || { message: "Lỗi khi lấy danh sách thông báo" }
+    );
+  }
+};
+
+export const approvePartner = async (userId, status) => {
+  try {
+    const response = await axios.patch(
+      `/admin/partners/update-status/${userId}`,
+      { status },
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Updating partner error:",
+      error.response?.data || error.message,
+    );
+
+    throw (
+      error.response?.data || {
+        message: "Không thể cập nhật trạng thái đối tác",
+      }
+    );
+  }
+};
+
+export const getDestinations = async () => {
+  try {
+    const response = await axios.get("/admin/destinations");
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Fetching destination error:",
+      error.response?.data || error.message,
+    );
+  }
+};
+
+export const updateDestination = async (code, data) => {
+  try {
+    const response = await axios.patch(`/admin/destinations/${code}`, data);
+    return response.data; 
+  } catch (error) {
+    console.error(
+      "Updating destination error:",
+      error.response?.data || error.message,
+    );
+  }
+};

@@ -2,7 +2,7 @@ import axios from "../lib/axios";
 
 export const login = async (email, password) => {
   try {
-    const response = await axios.post("/auth/admin/login", { email, password });
+    const response = await axios.post("/admin/login", { email, password });
 
     // Handle new standardized response format
     const responseData = response.data.data || response.data;

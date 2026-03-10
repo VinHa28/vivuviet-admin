@@ -164,7 +164,7 @@ export default function Posts() {
       <main className="ml-64 flex-1 p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#252525] mb-2">
-            Quản lý Baif
+            Quản lý bài đăng
           </h1>
           <p className="text-gray-600">
             Duyệt và quản lý các dịch vụ từ đối tác
