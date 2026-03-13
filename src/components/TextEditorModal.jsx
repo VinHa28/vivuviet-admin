@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from "react";
 import Editor from "../lib/text-editor/react-advanced-richtext-editor.esm.js";
 import "@webbycrown/react-advanced-richtext-editor/dist/styles.css";
@@ -13,201 +12,275 @@ import {
   Image,
   Upload,
   message,
-  Spin,
 } from "antd";
 import { Plus, Trash2, Eye, Edit, UploadCloud } from "lucide-react";
 import "./textModal.css";
 import {
   createNewPost,
+  updatePost,
   getAactiveDestinations,
 } from "../services/adminService.js";
-import { uploadToCloudinary } from "../services/cloundinaryService.js";
 
 export default function TextEditorModal({
   isOpenModal,
   onCloseModal,
-  initialContent,
-  getPosts,
+  initialData, // Nhận dữ liệu bài viết khi bấm "Chi tiết"
 }) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState(initialContent || "");
+  const [form] = Form.useForm();
+  const [content, setContent] = useState("");
   const [destinations, setDestinations] = useState([]);
-  const [selectedDest, setSelectedDest] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
 
-  const [banner, setBanner] = useState({ title: "", image: "", alt: "" });
+  // State cho Banner
+  const [banner, setBanner] = useState({
+    imagePreview: "",
+    imageFile: null,
+  });
+
+  // State cho Gallery (kết hợp ảnh cũ và ảnh mới)
   const [imageList, setImageList] = useState([]);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-  const [form] = Form.useForm();
+  const [galleryForm] = Form.useForm();
 
-  // Hàm xử lý upload chung
-  const handleCustomUpload = async (file, callback) => {
-    setUploading(true);
-    const url = await uploadToCloudinary(file);
-    if (url) {
-      callback(url);
-      message.success("Tải ảnh lên thành công!");
+  // 1. Khởi tạo dữ liệu khi mở Modal (Create vs Update)
+  useEffect(() => {
+    if (!isOpenModal) return;
+
+    const fetchDestinations = async () => {
+      const data = await getAactiveDestinations();
+      setDestinations(data);
+    };
+    fetchDestinations();
+
+    if (initialData) {
+      setTimeout(() => {
+        form.setFieldsValue({
+          title: initialData.title,
+          destinationId:
+            initialData.destinationId?._id || initialData.destinationId,
+          bannerTitle: initialData.banner?.title,
+          bannerAlt: initialData.banner?.alt,
+        });
+      });
+
+      setContent(initialData.content || "");
+      setBanner({
+        imagePreview: initialData.banner?.image || "",
+        imageFile: null,
+      });
+
+      const existingGallery =
+        initialData.gallery?.map((img, index) => ({
+          id: `old-${index}`,
+          preview: img.image,
+          alt: img.alt,
+          isExisting: true,
+        })) || [];
+
+      setImageList(existingGallery);
     } else {
-      message.error("Tải ảnh lên thất bại.");
+      form.resetFields();
+      setContent("");
+      setBanner({ imagePreview: "", imageFile: null });
+      setImageList([]);
     }
-    setUploading(false);
+  }, [initialData, isOpenModal]);
+
+  // 2. Xử lý ảnh Banner
+  const handleBannerUpload = (file) => {
+    const isLt3M = file.size / 1024 / 1024 < 3;
+    if (!isLt3M) {
+      message.error("Ảnh phải nhỏ hơn 3MB!");
+      return Upload.LIST_IGNORE;
+    }
+    setBanner({
+      imagePreview: URL.createObjectURL(file),
+      imageFile: file,
+    });
     return false;
   };
 
-  const handleAddGalleryImage = async (values) => {
+  // 3. Xử lý thêm ảnh vào Gallery
+  const handleAddGalleryImage = (values) => {
     const file = values.image.file;
-    setUploading(true);
-    const url = await uploadToCloudinary(file);
-    if (url) {
-      setImageList([...imageList, { ...values, image: url, id: Date.now() }]);
-      form.resetFields();
-      setIsImageModalOpen(false);
-    }
-    setUploading(false);
+    const preview = URL.createObjectURL(file);
+    setImageList([
+      ...imageList,
+      {
+        id: Date.now(),
+        imageFile: file,
+        preview: preview,
+        alt: values.alt,
+        isExisting: false,
+      },
+    ]);
+    galleryForm.resetFields();
+    setIsImageModalOpen(false);
   };
 
-  const getDestinations = async () => {
-    try {
-      const data = await getAactiveDestinations();
-      setDestinations(data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  useEffect(() => {
-    getDestinations();
-  }, []);
-
+  // 4. Gửi dữ liệu (Submit)
   const handleSubmit = async () => {
     try {
+      // Validate Frontend
+      const values = await form.validateFields();
+      if (!content || content.trim() === "" || content === "<p><br></p>") {
+        return message.error("Vui lòng nhập nội dung bài viết!");
+      }
+
       setLoading(true);
-      await createNewPost({
-        title,
-        banner,
-        content,
-        destinationId: selectedDest,
-        gallery: imageList,
-      });
-      message.success("Lưu bài viết thành công!");
+      const formData = new FormData();
+      formData.append("title", values.title);
+      formData.append("content", content);
+      formData.append("destinationId", values.destinationId);
+      formData.append("bannerTitle", values.bannerTitle);
+      formData.append("bannerAlt", values.bannerAlt);
+
+      if (banner.imageFile) {
+        formData.append("bannerImage", banner.imageFile);
+      }
+
+      // Tách ảnh Gallery cũ và mới
+      const existingGallery = imageList
+        .filter((img) => img.isExisting)
+        .map((img) => ({ image: img.preview, alt: img.alt }));
+
+      formData.append("existingGallery", JSON.stringify(existingGallery));
+
+      imageList
+        .filter((img) => !img.isExisting)
+        .forEach((item) => {
+          formData.append("galleryImages", item.imageFile);
+          formData.append(`galleryAlts`, item.alt);
+        });
+
+      // Gọi API tương ứng
+      if (initialData?._id) {
+        await updatePost(formData, initialData._id);
+        message.success("Cập nhật bài viết thành công!");
+      } else {
+        await createNewPost(formData);
+        message.success("Tạo bài viết mới thành công!");
+      }
+
       onCloseModal();
     } catch (error) {
-      console.error(error);
+      // Hiển thị lỗi từ Validate hoặc từ Backend trả về
+      const errorMsg =
+        error.response?.data?.message || error.message || "Có lỗi xảy ra!";
+      message.error(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <>
-      <Modal
-        title="Chỉnh sửa bài viết"
-        open={isOpenModal}
-        footer={[
-          <Button key="back" onClick={onCloseModal}>
-            Hủy bỏ
-          </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            loading={loading}
-            onClick={handleSubmit}
-          >
-            Lưu bài viết
-          </Button>,
-        ]}
-        width={1400}
-        centered
-        onCancel={onCloseModal}
-      >
-        <div className="flex gap-6 h-[75vh]">
-          {/* LEFT SIDE - CONFIG */}
-          <div className="w-1/3 overflow-y-auto pr-2 space-y-4">
-            <div>
-              <label className="font-semibold block mb-1">
-                Tiêu đề bài viết
-              </label>
-              <Input
-                placeholder="Nhập tiêu đề..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
+    <Modal
+      title={initialData ? "Chi tiết bài viết" : "Tạo bài viết mới"}
+      open={isOpenModal}
+      onCancel={onCloseModal}
+      width={1400}
+      destroyOnHidden
+      centered
+      footer={[
+        <Button key="cancel" onClick={onCloseModal}>
+          Hủy bỏ
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          loading={loading}
+          onClick={handleSubmit}
+        >
+          {initialData ? "Cập nhật" : "Đăng bài"}
+        </Button>,
+      ]}
+    >
+      <div className="flex gap-6 h-[75vh]">
+        {/* Cấu hình bên trái */}
+        <div className="w-1/3 overflow-y-auto pr-2">
+          <Form form={form} layout="vertical">
+            <Form.Item
+              name="title"
+              label="Tiêu đề bài viết"
+              rules={[{ required: true, message: "Vui lòng nhập tiêu đề!" }]}
+            >
+              <Input placeholder="Nhập tiêu đề..." />
+            </Form.Item>
 
-            <div className="border rounded-lg p-3 bg-gray-50 space-y-3">
-              <label className="font-semibold block">Banner bài viết</label>
-              <Input
-                placeholder="Tiêu đề banner"
-                value={banner.title}
-                onChange={(e) =>
-                  setBanner({ ...banner, title: e.target.value })
-                }
-              />
+            <div className="p-3 bg-gray-50 rounded-lg border mb-4">
+              <span className="font-semibold block mb-2">Banner chính</span>
+              <Form.Item name="bannerTitle" label="Tiêu đề ảnh">
+                <Input placeholder="VD: Cảnh đẹp Sapa" />
+              </Form.Item>
 
               <Upload
                 listType="picture-card"
                 showUploadList={false}
-                beforeUpload={(file) =>
-                  handleCustomUpload(file, (url) =>
-                    setBanner({ ...banner, image: url }),
-                  )
-                }
+                beforeUpload={handleBannerUpload}
               >
-                {banner.image ? (
+                {banner.imagePreview ? (
                   <img
-                    src={banner.image}
+                    src={banner.imagePreview}
                     alt="banner"
-                    style={{ width: "100%", borderRadius: "8px" }}
+                    className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div>
-                    {uploading ? <Spin /> : <UploadCloud size={20} />}
-                    <div style={{ marginTop: 8 }}>Tải ảnh lên</div>
+                  <div className="text-center">
+                    <Plus className="mx-auto" />
+                    <div className="mt-2">Chọn ảnh</div>
                   </div>
                 )}
               </Upload>
 
-              <Input
-                placeholder="Mô tả ảnh (Alt)"
-                value={banner.alt}
-                onChange={(e) => setBanner({ ...banner, alt: e.target.value })}
-              />
+              <Form.Item
+                name="bannerAlt"
+                label="Mô tả ảnh (Alt)"
+                className="mt-2"
+              >
+                <Input placeholder="Mô tả cho SEO..." />
+              </Form.Item>
             </div>
 
-            <div>
-              <label className="font-semibold block mb-1">Điểm đến</label>
+            <Form.Item
+              name="destinationId"
+              label="Điểm đến"
+              rules={[{ required: true, message: "Vui lòng chọn địa điểm!" }]}
+            >
               <Select
                 showSearch
-                className="w-full"
-                placeholder="Chọn điểm đến"
-                onChange={(value) => setSelectedDest(value)}
+                placeholder="Chọn tỉnh thành"
                 options={destinations.map((d) => ({
                   value: d._id,
                   label: d.name,
                 }))}
+                filterOption={(input, option) =>
+                  option.label.toLowerCase().includes(input.toLowerCase())
+                }
               />
-            </div>
+            </Form.Item>
 
-            <div>
+            <div className="mt-6">
               <Button
                 type="dashed"
-                onClick={() => setIsImageModalOpen(true)}
-                icon={<Plus size={16} />}
                 block
+                icon={<Plus size={16} />}
+                onClick={() => setIsImageModalOpen(true)}
               >
-                Thêm ảnh gallery
+                Thêm ảnh vào Gallery
               </Button>
 
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
                 {imageList.map((img) => (
-                  <div key={img.id} className="relative group">
+                  <div
+                    key={img.id}
+                    className="relative group border rounded p-1"
+                  >
                     <Image
-                      src={img.image}
-                      width={64}
-                      height={64}
-                      className="rounded object-cover"
+                      src={img.preview}
+                      width={80}
+                      height={80}
+                      className="object-cover rounded"
                     />
                     <button
                       onClick={() =>
@@ -221,60 +294,64 @@ export default function TextEditorModal({
                 ))}
               </div>
             </div>
-          </div>
-
-          {/* RIGHT SIDE - EDITOR */}
-          <div className="w-2/3 flex flex-col">
-            <div className="flex justify-between items-center mb-2">
-              <label className="font-semibold">
-                {previewMode ? "Xem trước" : "Soạn thảo"}
-              </label>
-              <Button
-                icon={previewMode ? <Edit size={16} /> : <Eye size={16} />}
-                onClick={() => setPreviewMode(!previewMode)}
-              >
-                {previewMode ? "Chỉnh sửa" : "Xem trước"}
-              </Button>
-            </div>
-            <Card className="flex-1 overflow-hidden">
-              {previewMode ? (
-                <div
-                  dangerouslySetInnerHTML={{ __html: content }}
-                  className="post-content overflow-y-auto h-full"
-                />
-              ) : (
-                <Editor value={content} onChange={setContent} />
-              )}
-            </Card>
-          </div>
+          </Form>
         </div>
-      </Modal>
 
-      {/* MODAL THÊM ẢNH GALLERY */}
+        {/* Soạn thảo bên phải */}
+        <div className="w-2/3 flex flex-col">
+          <div className="flex justify-between items-center mb-2">
+            <label className="font-semibold">Nội dung bài viết</label>
+            <Button
+              size="small"
+              icon={previewMode ? <Edit size={14} /> : <Eye size={14} />}
+              onClick={() => setPreviewMode(!previewMode)}
+            >
+              {previewMode ? "Quay lại chỉnh sửa" : "Xem trước hiển thị"}
+            </Button>
+          </div>
+          <Card className="flex-1 overflow-hidden shadow-inner">
+            {previewMode ? (
+              <div
+                dangerouslySetInnerHTML={{ __html: content }}
+                className="post-content-preview h-full overflow-y-auto post-content"
+              />
+            ) : (
+              <Editor value={content} onChange={setContent} />
+            )}
+          </Card>
+        </div>
+      </div>
+
+      {/* Modal nhỏ thêm ảnh Gallery */}
       <Modal
-        title="Tải ảnh lên Gallery"
+        title="Thêm ảnh thư viện"
         open={isImageModalOpen}
         onCancel={() => setIsImageModalOpen(false)}
-        onOk={() => form.submit()}
-        confirmLoading={uploading}
+        onOk={() => galleryForm.submit()}
       >
-        <Form form={form} layout="vertical" onFinish={handleAddGalleryImage}>
+        <Form
+          form={galleryForm}
+          layout="vertical"
+          onFinish={handleAddGalleryImage}
+        >
           <Form.Item
             name="image"
-            label="Chọn ảnh"
-            rules={[{ required: true, message: "Vui lòng chọn ảnh" }]}
+            label="Chọn tệp"
+            rules={[{ required: true, message: "Cần chọn ảnh!" }]}
           >
             <Upload beforeUpload={() => false} maxCount={1} listType="picture">
-              <Button icon={<UploadCloud size={16} />}>
-                Chọn file từ máy tính
-              </Button>
+              <Button icon={<UploadCloud size={16} />}>Chọn từ thiết bị</Button>
             </Upload>
           </Form.Item>
-          <Form.Item name="alt" label="Mô tả ảnh" rules={[{ required: true }]}>
-            <Input placeholder="Ví dụ: Cảnh biển lúc hoàng hôn" />
+          <Form.Item
+            name="alt"
+            label="Mô tả ảnh"
+            rules={[{ required: true, message: "Nhập mô tả ảnh!" }]}
+          >
+            <Input placeholder="VD: Ảnh chụp tại nhà thờ lớn" />
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </Modal>
   );
 }

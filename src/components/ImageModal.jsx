@@ -1,5 +1,4 @@
 import { Image, Modal } from "antd";
-import React from "react";
 
 export default function ImageModal({
   isGalleryOpen,
