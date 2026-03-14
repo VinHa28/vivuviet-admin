@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Editor from "../lib/text-editor/react-advanced-richtext-editor.esm.js";
 import "@webbycrown/react-advanced-richtext-editor/dist/styles.css";
 import "../lib/text-editor/styles.css";
